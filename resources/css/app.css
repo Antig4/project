@@ -1,0 +1,14 @@
+/* Global app styles */
+
+.actions-cell {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+	align-items: center;
+}
+.actions-cell .btn {
+	min-width: 120px;
+}
+.actions-cell .btn.btn-danger {
+	min-width: 150px;
+}
