@@ -49,7 +49,7 @@ class FacultyController extends Controller
         return response()->json($faculty);
     }
 
-    // 🟠 Archive instead of delete
+    //  Archive instead of delete
     public function destroy($id)
     {
         $faculty = Faculty::findOrFail($id);

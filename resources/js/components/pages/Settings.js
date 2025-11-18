@@ -110,6 +110,20 @@ function Settings() {
         }
     };
 
+    // Generic dispatcher for confirm modal
+    const handleConfirmAction = () => {
+        if (!confirmPayload || !confirmPayload.action) return;
+        if (confirmPayload.action === 'restore') return confirmRestore();
+        if (confirmPayload.action === 'delete') return confirmDeletePermanent();
+        if (confirmPayload.action === 'archive') {
+            // dispatch based on type
+            if (confirmPayload.type === 'department') return confirmArchiveDept();
+            if (confirmPayload.type === 'academic_year') return confirmArchiveYear();
+            // unknown type - close modal
+            setConfirmOpen(false);
+        }
+    };
+
     const handleEditDept = (dept) => {
         setEditingDept(dept);
         setShowDeptModal(true);
@@ -118,6 +132,52 @@ function Settings() {
     const handleEditYear = (year) => {
         setEditingYear(year);
         setShowYearModal(true);
+    };
+
+    // Archive department (ask confirm then archive with notification)
+    const handleArchiveDept = (dept) => {
+        setConfirmPayload({ action: 'archive', type: 'department', id: dept.id, name: dept.name });
+        setConfirmOpen(true);
+    };
+
+    const confirmArchiveDept = async () => {
+        const { id } = confirmPayload;
+        setConfirmOpen(false);
+        try {
+            const token = localStorage.getItem('token');
+            await axios.delete(`/api/departments/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+            setNotifyPayload({ title: 'Archived', message: `${confirmPayload.name || 'Department'} has been archived.` });
+            setNotifyOpen(true);
+            fetchSettings();
+            window.dispatchEvent(new Event('dataChanged'));
+        } catch (error) {
+            console.error('Error archiving department:', error);
+            setNotifyPayload({ title: 'Error', message: 'Failed to archive department.' });
+            setNotifyOpen(true);
+        }
+    };
+
+    // Archive academic year
+    const handleArchiveYear = (year) => {
+        setConfirmPayload({ action: 'archive', type: 'academic_year', id: year.id, name: year.period || year.name });
+        setConfirmOpen(true);
+    };
+
+    const confirmArchiveYear = async () => {
+        const { id } = confirmPayload;
+        setConfirmOpen(false);
+        try {
+            const token = localStorage.getItem('token');
+            await axios.delete(`/api/academic-years/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+            setNotifyPayload({ title: 'Archived', message: `${confirmPayload.name || 'Academic Year'} has been archived.` });
+            setNotifyOpen(true);
+            fetchSettings();
+            window.dispatchEvent(new Event('dataChanged'));
+        } catch (error) {
+            console.error('Error archiving academic year:', error);
+            setNotifyPayload({ title: 'Error', message: 'Failed to archive academic year.' });
+            setNotifyOpen(true);
+        }
     };
 
     // --- Embedded CoursesPanel component ---
@@ -358,12 +418,7 @@ function Settings() {
                                         <td>{dept.name}</td>
                                         <td>
                                             <button className="btn-icon" onClick={() => handleEditDept(dept)}>✏️</button>
-                                            <button className="btn-icon" onClick={async () => {
-                                                await axios.delete(`/api/departments/${dept.id}`, {
-                                                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                                                });
-                                                fetchSettings();
-                                            }}>📦</button>
+                                            <button className="btn-icon" onClick={() => handleArchiveDept(dept)}>📦</button>
                                         </td>
                                     </tr>
                                 ))}
@@ -411,12 +466,7 @@ function Settings() {
                                         <td>{new Date(year.end_date).toLocaleDateString()}</td>
                                         <td>
                                             <button className="btn-icon" onClick={() => handleEditYear(year)}>✏️</button>
-                                            <button className="btn-icon" onClick={async () => {
-                                                await axios.delete(`/api/academic-years/${year.id}`, {
-                                                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                                                });
-                                                fetchSettings();
-                                            }}>📦</button>
+                                            <button className="btn-icon" onClick={() => handleArchiveYear(year)}>📦</button>
                                         </td>
                                     </tr>
                                 ))}
@@ -643,11 +693,11 @@ function Settings() {
 
             {confirmOpen && (
                 <ConfirmModal
-                    title={confirmPayload.action === 'restore' ? `Restore ${confirmPayload.name}` : `Delete ${confirmPayload.name}`}
-                    message={confirmPayload.action === 'restore' ? `Are you sure you want to restore ${confirmPayload.name || 'this record'}?` : `Are you sure you want to permanently delete ${confirmPayload.name || 'this record'}? This cannot be undone.`}
+                    title={confirmPayload.action === 'restore' ? `Restore ${confirmPayload.name}` : (confirmPayload.action === 'archive' ? `Archive ${confirmPayload.name}` : `Delete ${confirmPayload.name}`)}
+                    message={confirmPayload.action === 'restore' ? `Are you sure you want to restore ${confirmPayload.name || 'this record'}?` : (confirmPayload.action === 'archive' ? `Are you sure you want to archive ${confirmPayload.name || 'this record'}?` : `Are you sure you want to permanently delete ${confirmPayload.name || 'this record'}? This cannot be undone.`)}
                     onCancel={() => setConfirmOpen(false)}
-                    onConfirm={confirmPayload.action === 'restore' ? confirmRestore : confirmDeletePermanent}
-                    confirmLabel={confirmPayload.action === 'restore' ? 'Restore' : 'Delete'}
+                    onConfirm={handleConfirmAction}
+                    confirmLabel={confirmPayload.action === 'restore' ? 'Restore' : (confirmPayload.action === 'archive' ? 'Archive' : 'Delete')}
                     cancelLabel="Cancel"
                 />
             )}

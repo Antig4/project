@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import NotificationModal from '../common/NotificationModal';
 
 function MyProfile() {
     const [user, setUser] = useState(null);
@@ -16,6 +17,8 @@ function MyProfile() {
     const [passwordConfirm, setPasswordConfirm] = useState('');
     const [avatarFile, setAvatarFile] = useState(null);
     const fileInputRef = useRef(null);
+    const [notifyOpen, setNotifyOpen] = useState(false);
+    const [notifyPayload, setNotifyPayload] = useState({});
 
     useEffect(() => {
         const userData = localStorage.getItem('user');
@@ -58,10 +61,12 @@ function MyProfile() {
             localStorage.setItem('user', JSON.stringify(updatedUser));
             setUser(updatedUser);
             setEditing(false);
-            alert('Profile updated');
+            setNotifyPayload({ title: 'Profile Updated', message: 'Your profile has been updated.' });
+            setNotifyOpen(true);
         } catch (err) {
             console.error('Error updating profile:', err.response || err);
-            alert(err.response?.data?.message || 'Failed to update profile');
+            setNotifyPayload({ title: 'Error', message: err.response?.data?.message || 'Failed to update profile' });
+            setNotifyOpen(true);
         }
     };
 
@@ -94,7 +99,8 @@ function MyProfile() {
             const updatedUser = response.data.user;
             localStorage.setItem('user', JSON.stringify(updatedUser));
             setUser(updatedUser);
-            alert('Avatar updated');
+            setNotifyPayload({ title: 'Avatar Updated', message: 'Your avatar has been updated.' });
+            setNotifyOpen(true);
         } catch (err) {
             console.error('Error uploading avatar:', err.response || err);
             alert('Failed to upload avatar');
@@ -272,6 +278,9 @@ function MyProfile() {
                     </div>
                 </div>
             </div>
+            {notifyOpen && (
+                <NotificationModal title={notifyPayload.title} message={notifyPayload.message} onClose={() => setNotifyOpen(false)} />
+            )}
         </main>
     );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import StudentModal from '../modals/StudentModal';
 import ConfirmModal from '../common/ConfirmModal';
@@ -16,22 +16,19 @@ function Students() {
     const [notifyOpen, setNotifyOpen] = useState(false);
     const [notifyPayload, setNotifyPayload] = useState({});
 
+    // Fetch all students once and apply client-side filtering/search for instant UI response
     useEffect(() => {
         fetchStudents();
-    }, [search, statusFilter]);
+    }, []);
 
     const fetchStudents = async () => {
         try {
+            setLoading(true);
             const token = localStorage.getItem('token');
-            const params = {};
-            if (search) params.search = search;
-            if (statusFilter !== 'All Status') params.status = statusFilter;
-
             const response = await axios.get('/api/students', {
-                headers: { Authorization: `Bearer ${token}` },
-                params
+                headers: { Authorization: `Bearer ${token}` }
             });
-            setStudents(response.data);
+            setStudents(response.data || []);
         } catch (error) {
             console.error('Error fetching students:', error);
         } finally {
@@ -51,13 +48,15 @@ function Students() {
         try {
             const token = localStorage.getItem('token');
             await axios.delete(`/api/students/${id}`, { headers: { Authorization: `Bearer ${token}` } });
-            fetchStudents();
+            // refresh from server
+            await fetchStudents();
             window.dispatchEvent(new Event('dataChanged'));
             setNotifyPayload({ title: 'Archived', message: `${confirmPayload.name || 'Student'} has been archived.` });
             setNotifyOpen(true);
         } catch (error) {
             console.error('Error archiving student:', error);
-            alert('Failed to archive student');
+            setNotifyPayload({ title: 'Error', message: 'Failed to archive student.' });
+            setNotifyOpen(true);
         }
     };
 
@@ -77,6 +76,26 @@ function Students() {
     fetchStudents();
     window.dispatchEvent(new Event('dataChanged'));
     };
+
+    // Derived filtered list based on search and status
+    const visibleStudents = useMemo(() => {
+        const q = (search || '').toString().toLowerCase().trim();
+        return (students || []).filter(s => {
+            // Filter by status
+            if (statusFilter && statusFilter !== 'All Status') {
+                if (((s.status || '').toString().toLowerCase()) !== statusFilter.toString().toLowerCase()) return false;
+            }
+
+            // Search by name or student id
+            if (q) {
+                const name = (s.name || '').toString().toLowerCase();
+                const sid = (s.student_id || '').toString().toLowerCase();
+                return name.includes(q) || sid.includes(q);
+            }
+
+            return true;
+        });
+    }, [students, search, statusFilter]);
 
     return (
         <main className="main-content">
@@ -111,7 +130,7 @@ function Students() {
                 </div>
 
                 <div className="table-header">
-                    <h3>Students ({students.length})</h3>
+                    <h3>Students ({visibleStudents.length})</h3>
                 </div>
 
                 {loading ? (
@@ -130,7 +149,7 @@ function Students() {
                             </tr>
                         </thead>
                         <tbody>
-                            {students.map((student) => (
+                            {visibleStudents.map((student) => (
                                 <tr key={student.id}>
                                     <td>{student.student_id}</td>
                                     <td>{student.name}</td>
@@ -138,7 +157,7 @@ function Students() {
                                     <td>{student.course?.name}</td>
                                     <td>{student.department?.name}</td>
                                     <td>
-                                        <span className={`badge badge-${student.status.toLowerCase()}`}>
+                                        <span className={`badge badge-${(student.status || '').toString().toLowerCase()}`}>
                                             {student.status}
                                         </span>
                                     </td>

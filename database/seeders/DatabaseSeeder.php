@@ -83,7 +83,7 @@ class DatabaseSeeder extends Seeder
         );
         Student::updateOrCreate(
             ['student_id' => 'STU004'],
-            ['name' => 'Alhamad Cebrano', 'email' => 'alhamadcebrano@gmail.com', 'phone' => '09046502435', 'dob' => '2003-01-12', 'enrollment_date' => '2022-08-01', 'address' => 'Patin-ay', 'academic_year_id' => $ay->id ?? null, 'year_level' => '2nd Year', 'course_id' => $bscs->id, 'department_id' => $cs->id, 'status' => 'Active']
+            ['name' => 'Alhamed Cebrano', 'email' => 'alhamedcebrano@gmail.com', 'phone' => '09046502435', 'dob' => '2003-01-12', 'enrollment_date' => '2022-08-01', 'address' => 'Patin-ay', 'academic_year_id' => $ay->id ?? null, 'year_level' => '2nd Year', 'course_id' => $bscs->id, 'department_id' => $cs->id, 'status' => 'Active']
         );
         Student::updateOrCreate(
             ['student_id' => 'STU005'],
